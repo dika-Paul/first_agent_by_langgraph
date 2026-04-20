@@ -7,21 +7,9 @@ from langchain_core.tools import BaseTool
 from langgraph.graph.message import add_messages
 
 
-def add_queries(old: Any, new: Any) -> list:
-    if old is None:
-        old = []
-    if new is None:
-        new = []
-    if not isinstance(old, list):
-        old = [old]
-    if not isinstance(new, list):
-        new = [new]
-    return old + new
-
-
 @dataclass
 class GraphState:
-    queries: Annotated[list[str], add_queries] = field(default_factory=list)
+    queries: str = field(default_factory=str)
     messages: Annotated[list[BaseMessage], add_messages] = field(default_factory=list)
 
 
