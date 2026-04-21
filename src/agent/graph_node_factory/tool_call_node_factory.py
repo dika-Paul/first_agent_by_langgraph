@@ -1,11 +1,11 @@
 import asyncio
 from typing import Any
 
-from langchain_core.messages import ToolCall, AIMessage, ToolMessage
+from langchain_core.messages import AIMessage, ToolCall, ToolMessage
 from langchain_core.tools import BaseTool
-from langgraph.runtime import Runtime
+from langgraph.runtime import Runtime, get_runtime
 
-from ..graph_state import GraphState, GraphContext
+from ..graph_state import GraphContext, GraphState
 from .base_node_factory import BaseMultiCallingNodeFactory
 
 
@@ -43,7 +43,8 @@ class ToolCallNodeFactory(BaseMultiCallingNodeFactory):
     @classmethod
     def sync_function(cls):
 
-        def func(state: GraphState, runtime: Runtime[GraphContext]) -> dict:
+        def func(state: GraphState) -> dict:
+            runtime = get_runtime(GraphContext)
             tool_calls  = cls.get_tool_calls(state)
 
             if not tool_calls:
@@ -85,7 +86,8 @@ class ToolCallNodeFactory(BaseMultiCallingNodeFactory):
     @classmethod
     def async_function(cls):
 
-        async def func(state: GraphState, runtime: Runtime[GraphContext]) -> dict:
+        async def func(state: GraphState) -> dict:
+            runtime = get_runtime(GraphContext)
             tool_calls = cls.get_tool_calls(state)
 
             if not tool_calls:

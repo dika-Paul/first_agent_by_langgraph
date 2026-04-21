@@ -4,7 +4,6 @@ from typing import Any
 from langchain_core.runnables import RunnableLambda
 
 
-
 class BaseNodeFactory(ABC):
     @staticmethod
     @abstractmethod

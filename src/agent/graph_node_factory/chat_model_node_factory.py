@@ -1,9 +1,9 @@
 from typing import Any
 
 from langchain_core.messages import SystemMessage
-from langgraph.runtime import Runtime
+from langgraph.runtime import Runtime, get_runtime
 
-from ..graph_state import GraphState, GraphContext
+from ..graph_state import GraphContext, GraphState
 from .base_node_factory import BaseMultiCallingNodeFactory
 
 
@@ -30,7 +30,8 @@ class ChatModelNodeFactory(BaseMultiCallingNodeFactory):
     @classmethod
     def sync_function(cls):
 
-        def func(state: GraphState, runtime: Runtime[GraphContext]) -> dict:
+        def func(state: GraphState) -> dict:
+            runtime = get_runtime(GraphContext)
             chat_model, system_msg = cls.get_llm_config(runtime)
             input_msgs = [system_msg] + state.messages
 
@@ -43,7 +44,8 @@ class ChatModelNodeFactory(BaseMultiCallingNodeFactory):
     @classmethod
     def async_function(cls):
 
-        async def func(state: GraphState, runtime: Runtime[GraphContext]) -> dict:
+        async def func(state: GraphState) -> dict:
+            runtime = get_runtime(GraphContext)
             chat_model, system_msg = cls.get_llm_config(runtime)
             input_msgs = [system_msg] + state.messages
 
