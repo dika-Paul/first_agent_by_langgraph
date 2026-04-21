@@ -16,11 +16,16 @@ from langchain_core.tools import BaseTool
 from pydantic import BaseModel, Field, PrivateAttr
 
 from agent import graph
+from agent.graph_node_factory import chat_model_node_factory, tool_call_node_factory
 
 pytestmark = pytest.mark.anyio
 
 
-def make_tool_call(name: str, args: dict[str, Any], tool_call_id: str = "call-1") -> dict[str, Any]:
+def make_tool_call(
+    name: str,
+    args: dict[str, Any],
+    tool_call_id: str = "call-1",
+) -> dict[str, Any]:
     return {
         "name": name,
         "args": args,
@@ -84,55 +89,90 @@ class FailingTool(BaseTool):
         raise RuntimeError(f"boom:{text}")
 
 
-def build_context(chat_model: BaseChatModel, tools: dict[str, BaseTool] | None = None) -> dict[str, Any]:
+def build_context(tools: list[str] | None = None) -> dict[str, Any]:
     return {
-        "chat_model": chat_model,
-        "SYSTEM_MSG": SystemMessage(content="system prompt"),
-        "tools": tools or {},
+        "model_name": "fake-model",
+        "model_provider": "test-provider",
+        "SYSTEM_MSG": "system prompt",
+        "tools": tools or [],
     }
 
 
-def test_graph_invoke_returns_direct_ai_response() -> None:
-    chat_model = FakeChatModel(responses=[AIMessage(content="final answer")])
+def patch_runtime_deps(
+    monkeypatch: pytest.MonkeyPatch,
+    chat_model: BaseChatModel,
+    available_tools: dict[str, BaseTool] | None = None,
+) -> list[tuple[str, str]]:
+    model_requests: list[tuple[str, str]] = []
+    tool_registry = available_tools or {}
 
-    result = graph.invoke({"query": "hello"}, context=build_context(chat_model))
+    def fake_get_model(model_name: str, model_provider: str) -> BaseChatModel:
+        model_requests.append((model_name, model_provider))
+        return chat_model
+
+    def fake_get_tool_dict(
+        tools: list[str] | tuple[str, ...],
+    ) -> dict[str, BaseTool]:
+        return {
+            tool_name: tool_registry[tool_name]
+            for tool_name in tools
+            if tool_name in tool_registry
+        }
+
+    monkeypatch.setattr(chat_model_node_factory, "get_model", fake_get_model)
+    monkeypatch.setattr(chat_model_node_factory, "get_tool_dict", fake_get_tool_dict)
+    monkeypatch.setattr(tool_call_node_factory, "get_tool_dict", fake_get_tool_dict)
+    return model_requests
+
+
+def test_graph_invoke_returns_direct_ai_response(monkeypatch: pytest.MonkeyPatch) -> None:
+    chat_model = FakeChatModel(responses=[AIMessage(content="final answer")])
+    model_requests = patch_runtime_deps(monkeypatch, chat_model)
+
+    result = graph.invoke({"query": "hello"}, context=build_context())
 
     messages = result["messages"]
     assert isinstance(messages[0], HumanMessage)
     assert messages[0].content == "hello"
     assert isinstance(messages[-1], AIMessage)
     assert messages[-1].content == "final answer"
+    assert model_requests == [("fake-model", "test-provider")]
     assert len(chat_model.calls) == 1
     assert isinstance(chat_model.calls[0][0], SystemMessage)
+    assert chat_model.calls[0][0].content == "system prompt"
     assert isinstance(chat_model.calls[0][1], HumanMessage)
 
 
-async def test_graph_returns_direct_ai_response() -> None:
+async def test_graph_returns_direct_ai_response(monkeypatch: pytest.MonkeyPatch) -> None:
     chat_model = FakeChatModel(responses=[AIMessage(content="final answer")])
+    model_requests = patch_runtime_deps(monkeypatch, chat_model)
 
-    result = await graph.ainvoke({"query": "hello"}, context=build_context(chat_model))
+    result = await graph.ainvoke({"query": "hello"}, context=build_context())
 
     messages = result["messages"]
     assert isinstance(messages[0], HumanMessage)
     assert messages[0].content == "hello"
     assert isinstance(messages[-1], AIMessage)
     assert messages[-1].content == "final answer"
+    assert model_requests == [("fake-model", "test-provider")]
     assert len(chat_model.calls) == 1
     assert isinstance(chat_model.calls[0][0], SystemMessage)
+    assert chat_model.calls[0][0].content == "system prompt"
     assert isinstance(chat_model.calls[0][1], HumanMessage)
 
 
-async def test_graph_completes_tool_call_loop() -> None:
+async def test_graph_completes_tool_call_loop(monkeypatch: pytest.MonkeyPatch) -> None:
     chat_model = FakeChatModel(
         responses=[
             AIMessage(content="", tool_calls=[make_tool_call("echo", {"text": "ping"})]),
             AIMessage(content="tool handled"),
         ]
     )
+    patch_runtime_deps(monkeypatch, chat_model, {"echo": EchoTool()})
 
     result = await graph.ainvoke(
         {"query": "call the tool"},
-        context=build_context(chat_model, {"echo": EchoTool()}),
+        context=build_context(["echo"]),
     )
 
     messages = result["messages"]
@@ -147,15 +187,18 @@ async def test_graph_completes_tool_call_loop() -> None:
     assert chat_model.calls[1][-1].content == "echo:ping"
 
 
-async def test_graph_returns_error_tool_message_when_tool_is_missing() -> None:
+async def test_graph_returns_error_tool_message_when_tool_is_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     chat_model = FakeChatModel(
         responses=[
             AIMessage(content="", tool_calls=[make_tool_call("missing_tool", {"text": "ping"})]),
             AIMessage(content="missing tool handled"),
         ]
     )
+    patch_runtime_deps(monkeypatch, chat_model)
 
-    result = await graph.ainvoke({"query": "missing tool"}, context=build_context(chat_model))
+    result = await graph.ainvoke({"query": "missing tool"}, context=build_context())
 
     tool_message = result["messages"][2]
     assert isinstance(tool_message, ToolMessage)
@@ -165,17 +208,20 @@ async def test_graph_returns_error_tool_message_when_tool_is_missing() -> None:
     assert result["messages"][-1].content == "missing tool handled"
 
 
-async def test_graph_returns_error_tool_message_when_tool_raises() -> None:
+async def test_graph_returns_error_tool_message_when_tool_raises(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     chat_model = FakeChatModel(
         responses=[
             AIMessage(content="", tool_calls=[make_tool_call("failing", {"text": "ping"})]),
             AIMessage(content="tool error handled"),
         ]
     )
+    patch_runtime_deps(monkeypatch, chat_model, {"failing": FailingTool()})
 
     result = await graph.ainvoke(
         {"query": "tool raises"},
-        context=build_context(chat_model, {"failing": FailingTool()}),
+        context=build_context(["failing"]),
     )
 
     tool_message = result["messages"][2]
