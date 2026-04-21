@@ -5,19 +5,26 @@ from langgraph.runtime import Runtime, get_runtime
 
 from ..graph_state import GraphContext, GraphState
 from .base_node_factory import BaseMultiCallingNodeFactory
-
+from ..runtime_deps import get_model, get_tool_dict
 
 class ChatModelNodeFactory(BaseMultiCallingNodeFactory):
 
     @staticmethod
     def get_llm_config(runtime: Runtime[GraphContext]) -> tuple[Any, SystemMessage]:
         system_msg = runtime.context.get('SYSTEM_MSG')
-        chat_model = runtime.context.get('chat_model')
-        tools = runtime.context.get('tools')
+
+        chat_model = get_model(
+            model_name=runtime.context.get('model_name'),
+            model_provider=runtime.context.get('model_provider'),
+        )
+
+        tools = get_tool_dict(
+            tools=runtime.context.get('tools')
+        )
 
         return (
             chat_model.bind_tools([tool for tool in tools.values()]),
-            system_msg
+            SystemMessage(content=system_msg),
         )
 
     @staticmethod

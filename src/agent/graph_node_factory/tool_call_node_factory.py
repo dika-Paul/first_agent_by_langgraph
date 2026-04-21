@@ -3,10 +3,11 @@ from typing import Any
 
 from langchain_core.messages import AIMessage, ToolCall, ToolMessage
 from langchain_core.tools import BaseTool
-from langgraph.runtime import Runtime, get_runtime
+from langgraph.runtime import get_runtime
 
 from ..graph_state import GraphContext, GraphState
 from .base_node_factory import BaseMultiCallingNodeFactory
+from ..runtime_deps import get_tool_dict
 
 
 class ToolCallNodeFactory(BaseMultiCallingNodeFactory):
@@ -22,14 +23,14 @@ class ToolCallNodeFactory(BaseMultiCallingNodeFactory):
 
     @staticmethod
     def get_tool(
-            runtime: Runtime[GraphContext],
+            tools: dict[str, BaseTool],
             tool_call: ToolCall
     ) -> tuple[BaseTool | None, str, dict[str, Any], str | None]:
         tool_name = tool_call.get('name')
         tool_args = tool_call.get('args')
         tool_id = tool_call.get('id')
 
-        tool = runtime.context.get('tools').get(tool_name)
+        tool = tools.get(tool_name)
 
         return tool, tool_name, tool_args, tool_id
 
@@ -45,6 +46,7 @@ class ToolCallNodeFactory(BaseMultiCallingNodeFactory):
 
         def func(state: GraphState) -> dict:
             runtime = get_runtime(GraphContext)
+            tools = get_tool_dict(runtime.context.get('tools'))
             tool_calls  = cls.get_tool_calls(state)
 
             if not tool_calls:
@@ -52,7 +54,7 @@ class ToolCallNodeFactory(BaseMultiCallingNodeFactory):
 
             tool_messages = []
             for tool_call in tool_calls:
-                tool, tool_name,tool_args, tool_id = cls.get_tool(runtime, tool_call)
+                tool, tool_name,tool_args, tool_id = cls.get_tool(tools, tool_call)
 
                 if not tool:
                     tool_message = ToolMessage(
@@ -88,6 +90,7 @@ class ToolCallNodeFactory(BaseMultiCallingNodeFactory):
 
         async def func(state: GraphState) -> dict:
             runtime = get_runtime(GraphContext)
+            tools = get_tool_dict(runtime.context.get('tools'))
             tool_calls = cls.get_tool_calls(state)
 
             if not tool_calls:
@@ -96,7 +99,7 @@ class ToolCallNodeFactory(BaseMultiCallingNodeFactory):
             semaphore = asyncio.Semaphore(6)
 
             async def build_tool_message(tool_call: ToolCall):
-                tool, tool_name,tool_args, tool_id = cls.get_tool(runtime, tool_call)
+                tool, tool_name,tool_args, tool_id = cls.get_tool(tools, tool_call)
                 if not tool:
                     return ToolMessage(
                         content=f'工具不存在：{tool_name}',
