@@ -22,13 +22,12 @@ class SearchQueryByBoCha(BaseTool):
     def _bocha_config_judge(self) -> bool:
         return self.bocha_api_key is not None and self.bocha_base_url is not None
 
-    @classmethod
-    def get_session_kwargs(cls, query: str) -> dict:
+    def get_session_kwargs(self, query: str) -> dict:
         return {
-            'url': cls.bocha_base_url,
+            'url': self.bocha_base_url,
             'headers': {
                 'Content-Type': 'application/json; charset=utf-8',
-                'Authorization': f'Bearer {cls.bocha_api_key}'
+                'Authorization': f'Bearer {self.bocha_api_key}'
             },
             'json': {
                 'query': query,
@@ -42,7 +41,7 @@ class SearchQueryByBoCha(BaseTool):
         if str(res.get('code')) != '200':
             return f'请求错误：{res.get("message")}'
 
-        webpages = res.get('data', {}).get('webpages', {}).get('values', [])
+        webpages = res.get('data', {}).get('webPages', {}).get('value', [])
         if webpages is None:
             return '没有相关内容'
 

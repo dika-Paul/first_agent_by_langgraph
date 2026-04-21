@@ -21,10 +21,9 @@ class IPLocateByGaoDe(BaseTool):
     def _gaode_config_judge(self) -> bool:
         return self.gaode_api_key is not None and self.gaode_base_url is not None
 
-    @classmethod
-    def get_session_kwargs(cls, ip_address:str) -> dict[str, Any]:
+    def get_session_kwargs(self, ip_address:str) -> dict[str, Any]:
         return {
-            "url": f'{cls.gaode_base_url}ip={ip_address}&key={cls.gaode_api_key}',
+            "url": f'{self.gaode_base_url}ip={ip_address}&key={self.gaode_api_key}',
             "headers": {'Content-Type': 'application/json; charset=utf-8'},
         }
 
