@@ -1,4 +1,4 @@
-from typing import Annotated, TypedDict, Any
+from typing import Annotated, TypedDict
 from dataclasses import dataclass, field
 
 from langchain_core.language_models import BaseChatModel
