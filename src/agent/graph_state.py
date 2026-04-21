@@ -14,6 +14,7 @@ class GraphState:
 
 
 class GraphContext(TypedDict):
-    chat_model: BaseChatModel
-    SYSTEM_MSG: SystemMessage
-    tools: dict[str, BaseTool]
+    model_name: str
+    model_provider: str
+    SYSTEM_MSG: str
+    tools: list[str]
