@@ -9,7 +9,7 @@ from langgraph.graph.message import add_messages
 
 @dataclass
 class GraphState:
-    queries: str = field(default_factory=str)
+    query: str = field(default_factory=str)
     messages: Annotated[list[BaseMessage], add_messages] = field(default_factory=list)
 
 
