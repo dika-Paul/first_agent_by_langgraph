@@ -7,7 +7,7 @@ authors = [
 ]
 readme = "README.md"
 license = { text = "MIT" }
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 dependencies = [
     "aiohttp>=3.13.5",
     "anyio==4.13.0",
@@ -15,7 +15,7 @@ dependencies = [
     "langgraph==1.1.8",
     "langgraph-cli==0.4.23",
     "mypy==1.20.1",
-    "pydantic==2.13.2",
+    "pydantic==2.13.3",
     "python-dotenv>=1.0.1",
     "requests==2.33.1",
     "ruff==0.15.11",
