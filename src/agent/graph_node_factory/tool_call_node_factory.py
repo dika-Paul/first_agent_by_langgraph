@@ -5,8 +5,8 @@ from langchain_core.messages import ToolCall, AIMessage, ToolMessage
 from langchain_core.tools import BaseTool
 from langgraph.runtime import Runtime
 
-from agent import GraphState, GraphContext
-from base_node_factory import BaseMultiCallingNodeFactory
+from ..graph_state import GraphState, GraphContext
+from .base_node_factory import BaseMultiCallingNodeFactory
 
 
 class ToolCallNodeFactory(BaseMultiCallingNodeFactory):

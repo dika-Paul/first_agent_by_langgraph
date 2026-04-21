@@ -2,8 +2,8 @@ from typing import Any
 
 from langchain_core.messages import HumanMessage
 
-from agent import GraphState
-from base_node_factory import BaseSingleCallingNodeFactory
+from ..graph_state import GraphState
+from .base_node_factory import BaseSingleCallingNodeFactory
 
 
 class AddQueryNodeFactory(BaseSingleCallingNodeFactory):

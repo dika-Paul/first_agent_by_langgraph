@@ -11,8 +11,8 @@ from langchain_core.messages import AIMessage
 from langgraph.graph import StateGraph
 from langgraph.constants import START, END
 
-from graph_state import GraphState, GraphContext
-from graph_node_factory import *
+from .graph_state import GraphState, GraphContext
+from .graph_node_factory import *
 
 
 add_query = AddQueryNodeFactory.graph_node()
