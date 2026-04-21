@@ -81,7 +81,7 @@ class SearchQueryByBoCha(BaseTool):
         session_kwargs['timeout'] = aiohttp.ClientTimeout(20)
 
         async with aiohttp.ClientSession() as session:
-            async with session.get(**session_kwargs) as resp:
+            async with session.post(**session_kwargs) as resp:
                 resp.raise_for_status()
                 res = await resp.json()
 
