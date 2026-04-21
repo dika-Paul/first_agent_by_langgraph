@@ -50,5 +50,6 @@ graph_builder.add_conditional_edges(
         'end': END
     }
 )
+graph_builder.add_edge('tool_calling', 'chat_model')
 
 graph = graph_builder.compile()
