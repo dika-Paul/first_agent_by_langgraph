@@ -18,9 +18,8 @@ class IPLocateByGaoDe(BaseTool):
     gaode_api_key: str = os.getenv("GAODE_API_KEY")
     gaode_base_url: str = os.getenv("GAODE_BASE_URL")
 
-    @classmethod
-    def _gaode_config_judge(cls) -> bool:
-        return cls.gaode_api_key is not None and cls.gaode_base_url is not None
+    def _gaode_config_judge(self) -> bool:
+        return self.gaode_api_key is not None and self.gaode_base_url is not None
 
     @classmethod
     def get_session_kwargs(cls, ip_address:str) -> dict[str, Any]:

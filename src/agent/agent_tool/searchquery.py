@@ -19,9 +19,8 @@ class SearchQueryByBoCha(BaseTool):
     bocha_api_key: str = os.getenv("BOCHA_API_KEY")
     bocha_base_url: str = os.getenv("BOCHA_BASE_URL")
 
-    @classmethod
-    def _bocha_config_judge(cls) -> bool:
-        return cls.bocha_api_key is not None and cls.bocha_base_url is not None
+    def _bocha_config_judge(self) -> bool:
+        return self.bocha_api_key is not None and self.bocha_base_url is not None
 
     @classmethod
     def get_session_kwargs(cls, query: str) -> dict:
